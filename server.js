@@ -64,20 +64,24 @@ app.post('/api/hf', async (req, res) => {
       });
     }
 
-   const url = `https://router.huggingface.co/models/${encodeURIComponent(model)}`;
+   
 
 console.log("Calling HF:", url);
 
 const response = await axios.post(
-  url,
+  "https://router.huggingface.co/v1/chat/completions",
   {
-    inputs: finalInput,
-    parameters: parameters || {}
+    model: model,
+    messages: [
+      { role: "user", content: finalInput }
+    ],
+    temperature: parameters?.temperature ?? 0.7,
+    top_p: parameters?.top_p ?? 0.9
   },
   {
     headers: {
       Authorization: `Bearer ${hfToken}`,
-      'Content-Type': 'application/json'
+      "Content-Type": "application/json"
     },
     timeout: 120000
   }
