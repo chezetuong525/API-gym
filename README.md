@@ -18,12 +18,12 @@ FE có thể gửi request tới endpoint:
 
 - `POST /api/hf`
 - body JSON:
-  - `model`: tên model Hugging Face, ví dụ `gpt2`, `google/flan-t5-small`
-  - `inputs`: dữ liệu đầu vào cho model
-  - `parameters`: tuỳ chọn thêm cho inference
-  - `options`: tuỳ chọn khác nếu cần
+- `model`: tên model Hugging Face, ví dụ `gpt2`, `google/flan-t5-small`, `openai/gpt-oss-120b:fastest`
+- `inputs`: dữ liệu đầu vào cho model
+- `parameters`: tuỳ chọn thêm cho inference hoặc chat completion
+- `options`: tuỳ chọn khác nếu cần
 
-> Backend hiện tại sử dụng Hugging Face Router API (`https://router.huggingface.co/inference/{model}`) để thay cho endpoint cũ.
+> Backend hiện tại tự động dùng `https://router.huggingface.co/v1/chat/completions` cho model OpenAI-style chat, và `https://router.huggingface.co/inference/{model}` cho các model inference thông thường.
 
 Ví dụ:
 

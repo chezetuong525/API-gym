@@ -18,6 +18,19 @@ if (!hfToken) {
 app.use(cors());
 app.use(express.json());
 
+function isChatModel(model, messages) {
+  if (messages && Array.isArray(messages) && messages.length > 0) {
+    return true;
+  }
+
+  if (typeof model !== 'string') {
+    return false;
+  }
+
+  const normalized = model.toLowerCase();
+  return normalized.startsWith('openai/') || normalized.includes('chat') || normalized.includes('gpt-oss');
+}
+
 app.get('/', (req, res) => {
   res.json({
     message: 'Hugging Face proxy API đang hoạt động',
@@ -42,18 +55,39 @@ app.post('/api/hf', async (req, res) => {
   }
 
   try {
-    const encodedModel = encodeURIComponent(model);
-    const response = await axios.post(
-      `${hfHost}/inference/${encodedModel}`,
-      { inputs, parameters, options },
-      {
-        headers: {
-          Authorization: `Bearer ${hfToken}`,
-          'Content-Type': 'application/json'
-        },
-        timeout: 120000
-      }
-    );
+    const chat = isChatModel(model, req.body.messages);
+    let response;
+
+    if (chat) {
+      const messages = req.body.messages || [
+        { role: 'user', content: inputs }
+      ];
+
+      response = await axios.post(
+        `${hfHost}/v1/chat/completions`,
+        { model, messages, ...parameters },
+        {
+          headers: {
+            Authorization: `Bearer ${hfToken}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 120000
+        }
+      );
+    } else {
+      const encodedModel = encodeURIComponent(model);
+      response = await axios.post(
+        `${hfHost}/inference/${encodedModel}`,
+        { inputs, parameters, options },
+        {
+          headers: {
+            Authorization: `Bearer ${hfToken}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 120000
+        }
+      );
+    }
 
     res.status(response.status).json(response.data);
   } catch (error) {
