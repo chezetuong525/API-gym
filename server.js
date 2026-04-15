@@ -66,7 +66,7 @@ app.post('/api/hf', async (req, res) => {
 
    
 
-console.log("Calling HF:", url);
+
 
 const response = await axios.post(
   "https://router.huggingface.co/v1/chat/completions",
