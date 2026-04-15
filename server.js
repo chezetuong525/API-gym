@@ -17,6 +17,16 @@ if (!hfToken) {
 app.use(cors());
 app.use(express.json());
 
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Hugging Face proxy API đang hoạt động',
+    endpoints: {
+      health: '/health',
+      inference: '/api/hf'
+    }
+  });
+});
+
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
