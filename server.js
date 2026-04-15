@@ -8,7 +8,6 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 const hfToken = process.env.HUGGINGFACE_API_KEY;
-const hfHost = process.env.HUGGINGFACE_API_HOST || 'https://router.huggingface.co';
 
 if (!hfToken) {
   console.error('Missing HUGGINGFACE_API_KEY in environment variables');
@@ -18,19 +17,18 @@ if (!hfToken) {
 app.use(cors());
 app.use(express.json());
 
-function isChatModel(model, messages) {
-  if (messages && Array.isArray(messages) && messages.length > 0) {
-    return true;
+// Convert messages (chat) -> text prompt
+function buildPrompt(messages, fallbackInput) {
+  if (!messages || !Array.isArray(messages)) {
+    return fallbackInput;
   }
 
-  if (typeof model !== 'string') {
-    return false;
-  }
-
-  const normalized = model.toLowerCase();
-  return normalized.startsWith('openai/') || normalized.includes('chat') || normalized.includes('gpt-oss');
+  return messages
+    .map(m => `${m.role}: ${m.content}`)
+    .join('\n');
 }
 
+// Root
 app.get('/', (req, res) => {
   res.json({
     message: 'Hugging Face proxy API đang hoạt động',
@@ -41,63 +39,66 @@ app.get('/', (req, res) => {
   });
 });
 
+// Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+// Main API
 app.post('/api/hf', async (req, res) => {
-  const { model, inputs, parameters, options } = req.body;
+  const { model, inputs, parameters, messages } = req.body;
 
-  if (!model || !inputs) {
+  if (!model) {
     return res.status(400).json({
-      error: 'Yêu cầu body có model và inputs, ví dụ { model, inputs, parameters? }'
+      error: 'Thiếu model'
     });
   }
 
   try {
-    const chat = isChatModel(model, req.body.messages);
-    let response;
+    // Nếu có messages → convert thành text
+    const finalInput = buildPrompt(messages, inputs);
 
-    if (chat) {
-      const messages = req.body.messages || [
-        { role: 'user', content: inputs }
-      ];
-
-      response = await axios.post(
-        `${hfHost}/v1/chat/completions`,
-        { model, messages, ...parameters },
-        {
-          headers: {
-            Authorization: `Bearer ${hfToken}`,
-            'Content-Type': 'application/json'
-          },
-          timeout: 120000
-        }
-      );
-    } else {
-      const encodedModel = encodeURIComponent(model);
-      response = await axios.post(
-        `${hfHost}/inference/${encodedModel}`,
-        { inputs, parameters, options },
-        {
-          headers: {
-            Authorization: `Bearer ${hfToken}`,
-            'Content-Type': 'application/json'
-          },
-          timeout: 120000
-        }
-      );
+    if (!finalInput) {
+      return res.status(400).json({
+        error: 'Thiếu inputs hoặc messages'
+      });
     }
 
-    res.status(response.status).json(response.data);
+    const url = `https://api-inference.huggingface.co/models/${encodeURIComponent(model)}`;
+
+    console.log("Calling HF:", url);
+
+    const response = await axios.post(
+      url,
+      {
+        inputs: finalInput,
+        parameters: parameters || {}
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${hfToken}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 120000
+      }
+    );
+
+    res.json(response.data);
+
   } catch (error) {
-    console.error('Hugging Face request failed:', error.message);
+    console.error('HF ERROR DETAIL:', error.response?.data || error.message);
 
     if (error.response) {
-      return res.status(error.response.status).json(error.response.data);
+      return res.status(error.response.status).json({
+        error: 'HuggingFace API error',
+        detail: error.response.data
+      });
     }
 
-    res.status(500).json({ error: 'Lỗi máy chủ khi gọi Hugging Face', detail: error.message });
+    res.status(500).json({
+      error: 'Server error',
+      detail: error.message
+    });
   }
 });
 
