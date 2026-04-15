@@ -42,8 +42,9 @@ app.post('/api/hf', async (req, res) => {
   }
 
   try {
+    const encodedModel = encodeURIComponent(model);
     const response = await axios.post(
-      `${hfHost}/inference/${model}`,
+      `${hfHost}/inference/${encodedModel}`,
       { inputs, parameters, options },
       {
         headers: {
