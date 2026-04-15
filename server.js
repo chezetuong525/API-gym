@@ -64,24 +64,24 @@ app.post('/api/hf', async (req, res) => {
       });
     }
 
-    const url = `https://api-inference.huggingface.co/models/${encodeURIComponent(model)}`;
+   const url = `https://router.huggingface.co/models/${encodeURIComponent(model)}`;
 
-    console.log("Calling HF:", url);
+console.log("Calling HF:", url);
 
-    const response = await axios.post(
-      url,
-      {
-        inputs: finalInput,
-        parameters: parameters || {}
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${hfToken}`,
-          'Content-Type': 'application/json'
-        },
-        timeout: 120000
-      }
-    );
+const response = await axios.post(
+  url,
+  {
+    inputs: finalInput,
+    parameters: parameters || {}
+  },
+  {
+    headers: {
+      Authorization: `Bearer ${hfToken}`,
+      'Content-Type': 'application/json'
+    },
+    timeout: 120000
+  }
+);
 
     res.json(response.data);
 
