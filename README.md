@@ -23,6 +23,8 @@ FE có thể gửi request tới endpoint:
   - `parameters`: tuỳ chọn thêm cho inference
   - `options`: tuỳ chọn khác nếu cần
 
+> Backend hiện tại sử dụng Hugging Face Router API (`https://router.huggingface.co/inference/{model}`) để thay cho endpoint cũ.
+
 Ví dụ:
 
 ```json

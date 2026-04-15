@@ -8,6 +8,7 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 const hfToken = process.env.HUGGINGFACE_API_KEY;
+const hfHost = process.env.HUGGINGFACE_API_HOST || 'https://router.huggingface.co';
 
 if (!hfToken) {
   console.error('Missing HUGGINGFACE_API_KEY in environment variables');
@@ -42,7 +43,7 @@ app.post('/api/hf', async (req, res) => {
 
   try {
     const response = await axios.post(
-      `https://api-inference.huggingface.co/models/${model}`,
+      `${hfHost}/inference/${model}`,
       { inputs, parameters, options },
       {
         headers: {
